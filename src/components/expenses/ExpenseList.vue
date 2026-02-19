@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Expense } from '@/types'
 import { BaseEmpty } from '@/components/common'
+import { formatCurrency } from '@/utils/currency'
 
 interface Props {
   expenses: Expense[]
@@ -16,13 +17,6 @@ const emit = defineEmits<{
   edit: [expense: Expense]
   delete: [expense: Expense]
 }>()
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 function formatDate(date: Date): string {
   return format(date, "d 'de' MMM, yyyy", { locale: es })

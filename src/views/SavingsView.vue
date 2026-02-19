@@ -6,6 +6,7 @@ import { SavingsBoxCard, SavingsBoxForm } from '@/components/savings'
 import { useSavingsBoxes } from '@/composables/useSavingsBoxes'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import type { SavingsBox, SavingsBoxFormData } from '@/types'
+import { formatCurrency } from '@/utils/currency'
 
 const {
   boxes,
@@ -22,13 +23,6 @@ const showForm = ref(false)
 const editingBox = ref<SavingsBox | null>(null)
 const showDeleteConfirm = ref(false)
 const boxToDelete = ref<SavingsBox | null>(null)
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 function handleNew() {
   editingBox.value = null

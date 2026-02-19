@@ -4,6 +4,7 @@ import {
   ArrowTrendingDownIcon,
   ScaleIcon
 } from '@heroicons/vue/24/outline'
+import { formatCurrency } from '@/utils/currency'
 
 interface Props {
   incomes: number
@@ -12,13 +13,6 @@ interface Props {
 }
 
 defineProps<Props>()
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 </script>
 
 <template>

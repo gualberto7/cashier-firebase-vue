@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import type { SavingsBox } from '@/types'
+import { formatCurrency } from '@/utils/currency'
 
 interface Props {
   box: SavingsBox
@@ -12,13 +13,6 @@ const emit = defineEmits<{
   edit: [box: SavingsBox]
   delete: [box: SavingsBox]
 }>()
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 </script>
 
 <template>

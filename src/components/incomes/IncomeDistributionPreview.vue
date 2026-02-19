@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { IncomeDistribution } from '@/types'
+import { formatCurrency } from '@/utils/currency'
 
 interface Props {
   distributions: IncomeDistribution[]
@@ -14,13 +15,6 @@ const totalDistributed = computed(() =>
 )
 
 const remainder = computed(() => props.total - totalDistributed.value)
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 </script>
 
 <template>

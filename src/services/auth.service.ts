@@ -48,8 +48,8 @@ export const authService = {
 
   async createUserProfile(userId: string, profile?: Partial<UserProfile>) {
     const defaultProfile: UserProfile = {
-      currency: 'USD',
-      locale: 'es-ES',
+      currency: 'BOB',
+      locale: 'es-BO',
       ...profile
     }
 

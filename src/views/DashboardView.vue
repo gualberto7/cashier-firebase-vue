@@ -16,6 +16,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { formatCurrency } from '@/utils/currency'
 
 const {
   monthlyExpenses,
@@ -30,13 +31,6 @@ const incomesStore = useIncomesStore()
 
 const recentExpenses = computed(() => expensesStore.expenses.slice(0, 5))
 const recentIncomes = computed(() => incomesStore.incomes.slice(0, 5))
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 function formatDate(date: Date): string {
   return format(date, "d MMM", { locale: es })

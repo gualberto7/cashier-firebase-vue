@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Income } from '@/types'
 import { BaseEmpty } from '@/components/common'
+import { formatCurrency } from '@/utils/currency'
 
 interface Props {
   incomes: Income[]
@@ -19,13 +20,6 @@ const emit = defineEmits<{
 }>()
 
 const expandedIncomeId = ref<string | null>(null)
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 function formatDate(date: Date): string {
   return format(date, "d 'de' MMM, yyyy", { locale: es })

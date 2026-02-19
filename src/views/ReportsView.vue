@@ -6,6 +6,7 @@ import { ExpensesByCategory, MonthlySummary } from '@/components/reports'
 import { useReports } from '@/composables/useReports'
 import { useSavingsBoxesStore } from '@/stores/savingsBoxes'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { formatCurrency } from '@/utils/currency'
 
 const {
   isLoading,
@@ -20,13 +21,6 @@ const {
 } = useReports()
 
 const savingsBoxesStore = useSavingsBoxesStore()
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 onMounted(async () => {
   await savingsBoxesStore.fetchBoxes()

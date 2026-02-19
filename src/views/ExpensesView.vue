@@ -6,6 +6,7 @@ import { ExpenseForm, ExpenseList, ExpenseFilters } from '@/components/expenses'
 import { useExpenses } from '@/composables/useExpenses'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import type { Expense, ExpenseFormData, ExpenseFilters as IExpenseFilters } from '@/types'
+import { formatCurrency } from '@/utils/currency'
 
 const {
   expenses,
@@ -24,13 +25,6 @@ const showForm = ref(false)
 const editingExpense = ref<Expense | null>(null)
 const showDeleteConfirm = ref(false)
 const expenseToDelete = ref<Expense | null>(null)
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 function handleNew() {
   editingExpense.value = null

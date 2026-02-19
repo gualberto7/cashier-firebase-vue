@@ -6,6 +6,7 @@ import { IncomeForm, IncomeList } from '@/components/incomes'
 import { useIncomes } from '@/composables/useIncomes'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import type { Income, IncomeFormData } from '@/types'
+import { formatCurrency } from '@/utils/currency'
 
 const {
   incomes,
@@ -23,13 +24,6 @@ const showForm = ref(false)
 const editingIncome = ref<Income | null>(null)
 const showDeleteConfirm = ref(false)
 const incomeToDelete = ref<Income | null>(null)
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 function handleNew() {
   editingIncome.value = null
