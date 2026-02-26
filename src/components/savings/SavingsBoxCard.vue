@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { PencilIcon, TrashIcon, ArrowDownCircleIcon } from '@heroicons/vue/24/outline'
 import type { SavingsBox } from '@/types'
 import { formatCurrency } from '@/utils/currency'
 
@@ -12,6 +12,7 @@ defineProps<Props>()
 const emit = defineEmits<{
   edit: [box: SavingsBox]
   delete: [box: SavingsBox]
+  withdraw: [box: SavingsBox]
 }>()
 </script>
 
@@ -37,6 +38,14 @@ const emit = defineEmits<{
           >
             Inactiva
           </span>
+          <button
+            class="p-1.5 rounded-lg text-gray-400 hover:bg-amber-50 hover:text-amber-600"
+            title="Retirar"
+            :disabled="box.currentBalance <= 0"
+            @click="emit('withdraw', box)"
+          >
+            <ArrowDownCircleIcon class="h-4 w-4" />
+          </button>
           <button
             class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"
             @click="emit('edit', box)"

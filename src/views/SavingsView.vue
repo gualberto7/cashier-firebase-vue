@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { MainLayout } from '@/components/layout'
 import { BaseButton, BaseCard, BaseEmpty } from '@/components/common'
-import { SavingsBoxCard, SavingsBoxForm } from '@/components/savings'
+import { SavingsBoxCard, SavingsBoxForm, SavingsBoxWithdrawForm } from '@/components/savings'
 import { useSavingsBoxes } from '@/composables/useSavingsBoxes'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import type { SavingsBox, SavingsBoxFormData } from '@/types'
@@ -16,13 +16,16 @@ const {
   remainingPercentage,
   createBox,
   updateBox,
-  deleteBox
+  deleteBox,
+  withdrawFromBox
 } = useSavingsBoxes()
 
 const showForm = ref(false)
 const editingBox = ref<SavingsBox | null>(null)
 const showDeleteConfirm = ref(false)
 const boxToDelete = ref<SavingsBox | null>(null)
+const showWithdrawForm = ref(false)
+const withdrawingBox = ref<SavingsBox | null>(null)
 
 function handleNew() {
   editingBox.value = null
@@ -46,6 +49,18 @@ async function handleSave(data: SavingsBoxFormData) {
     await createBox(data)
   }
   showForm.value = false
+}
+
+function handleWithdraw(box: SavingsBox) {
+  withdrawingBox.value = box
+  showWithdrawForm.value = true
+}
+
+async function confirmWithdraw(amount: number) {
+  if (withdrawingBox.value) {
+    await withdrawFromBox(withdrawingBox.value.id, amount)
+    withdrawingBox.value = null
+  }
 }
 
 async function confirmDelete() {
@@ -118,6 +133,7 @@ async function confirmDelete() {
           :box="box"
           @edit="handleEdit"
           @delete="handleDeleteClick"
+          @withdraw="handleWithdraw"
         />
       </div>
 
@@ -126,6 +142,12 @@ async function confirmDelete() {
         :box="editingBox"
         :max-percentage="remainingPercentage"
         @save="handleSave"
+      />
+
+      <SavingsBoxWithdrawForm
+        v-model="showWithdrawForm"
+        :box="withdrawingBox"
+        @withdraw="confirmWithdraw"
       />
 
       <!-- Delete Confirmation Modal -->

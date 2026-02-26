@@ -112,6 +112,28 @@ export const useSavingsBoxesStore = defineStore('savingsBoxes', () => {
     }
   }
 
+  async function withdrawFromBox(boxId: string, amount: number) {
+    if (!authStore.user) return
+
+    const box = boxes.value.find(b => b.id === boxId)
+    if (!box) return
+    if (amount > box.currentBalance) {
+      throw new Error('El monto supera el balance disponible')
+    }
+
+    isLoading.value = true
+    error.value = null
+    try {
+      await savingsBoxesService.updateBalance(authStore.user.uid, boxId, -amount)
+      updateBoxBalance(boxId, -amount)
+    } catch (e: any) {
+      error.value = e.message || 'Error al retirar de la caja'
+      throw e
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   function clearError() {
     error.value = null
   }
@@ -135,6 +157,7 @@ export const useSavingsBoxesStore = defineStore('savingsBoxes', () => {
     updateBox,
     deleteBox,
     updateBoxBalance,
+    withdrawFromBox,
     clearError,
     $reset
   }

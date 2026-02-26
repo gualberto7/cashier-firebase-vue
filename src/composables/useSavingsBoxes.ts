@@ -29,6 +29,10 @@ export function useSavingsBoxes() {
     return store.deleteBox(boxId)
   }
 
+  async function withdrawFromBox(boxId: string, amount: number) {
+    return store.withdrawFromBox(boxId, amount)
+  }
+
   function canAddPercentage(percentage: number, excludeBoxId?: string) {
     return store.canAddPercentage(percentage, excludeBoxId)
   }
@@ -55,6 +59,7 @@ export function useSavingsBoxes() {
     createBox,
     updateBox,
     deleteBox,
+    withdrawFromBox,
     canAddPercentage,
     clearError
   }
