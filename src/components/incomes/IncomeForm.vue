@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { BaseButton, BaseInput, BaseModal } from '@/components/common'
-import { format } from 'date-fns'
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
+import { APP_TIMEZONE } from '@/utils/date'
 import IncomeDistributionPreview from './IncomeDistributionPreview.vue'
 import type { Income, IncomeFormData, IncomeDistribution, SavingsBox } from '@/types'
 
@@ -44,6 +45,10 @@ const hasActiveBoxes = computed(() =>
   props.savingsBoxes.some(b => b.isActive && b.targetPercentage > 0)
 )
 
+function toDatetimeLocal(date: Date): string {
+  return formatInTimeZone(date, APP_TIMEZONE, "yyyy-MM-dd'T'HH:mm")
+}
+
 watch(() => props.modelValue, (isOpen) => {
   if (isOpen) {
     if (props.income) {
@@ -52,15 +57,15 @@ watch(() => props.modelValue, (isOpen) => {
         description: props.income.description,
         date: props.income.date
       }
-      dateString.value = format(props.income.date, 'yyyy-MM-dd')
-      distributeToBoxes.value = false // Can't redistribute existing income
+      dateString.value = toDatetimeLocal(props.income.date)
+      distributeToBoxes.value = false
     } else {
       form.value = {
         amount: 0,
         description: '',
         date: new Date()
       }
-      dateString.value = format(new Date(), 'yyyy-MM-dd')
+      dateString.value = toDatetimeLocal(new Date())
       distributeToBoxes.value = hasActiveBoxes.value
     }
     errors.value = {}
@@ -69,7 +74,7 @@ watch(() => props.modelValue, (isOpen) => {
 
 watch(dateString, (value) => {
   if (value) {
-    form.value.date = new Date(value + 'T12:00:00')
+    form.value.date = fromZonedTime(value, APP_TIMEZONE)
   }
 })
 
@@ -127,7 +132,7 @@ function close() {
         <label class="label">Fecha</label>
         <input
           v-model="dateString"
-          type="date"
+          type="datetime-local"
           class="input"
           required
         />

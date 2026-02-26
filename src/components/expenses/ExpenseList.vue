@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import type { Expense } from '@/types'
 import { BaseEmpty } from '@/components/common'
 import { formatCurrency } from '@/utils/currency'
+import { formatDate } from '@/utils/date'
 
 interface Props {
   expenses: Expense[]
@@ -18,9 +17,6 @@ const emit = defineEmits<{
   delete: [expense: Expense]
 }>()
 
-function formatDate(date: Date): string {
-  return format(date, "d 'de' MMM, yyyy", { locale: es })
-}
 </script>
 
 <template>
@@ -43,11 +39,11 @@ function formatDate(date: Date): string {
       >
         <div class="flex-1 min-w-0">
           <p class="font-medium text-gray-900 truncate">{{ expense.description }}</p>
-          <div class="flex items-center gap-2 mt-1">
-            <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+          <div class="mt-1 space-y-1">
+            <span class="inline-block text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
               {{ expense.categoryName }}
             </span>
-            <span class="text-xs text-gray-500">{{ formatDate(expense.date) }}</span>
+            <p class="text-xs text-gray-500">{{ formatDate(expense.date) }}</p>
           </div>
         </div>
 

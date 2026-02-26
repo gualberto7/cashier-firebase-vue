@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { PencilIcon, TrashIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import { ref } from 'vue'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import type { Income } from '@/types'
 import { BaseEmpty } from '@/components/common'
 import { formatCurrency } from '@/utils/currency'
+import { formatDate } from '@/utils/date'
 
 interface Props {
   incomes: Income[]
@@ -20,10 +19,6 @@ const emit = defineEmits<{
 }>()
 
 const expandedIncomeId = ref<string | null>(null)
-
-function formatDate(date: Date): string {
-  return format(date, "d 'de' MMM, yyyy", { locale: es })
-}
 
 function toggleExpand(incomeId: string) {
   expandedIncomeId.value = expandedIncomeId.value === incomeId ? null : incomeId
@@ -51,14 +46,14 @@ function toggleExpand(incomeId: string) {
         <div class="flex items-center justify-between p-4">
           <div class="flex-1 min-w-0">
             <p class="font-medium text-gray-900 truncate">{{ income.description }}</p>
-            <div class="flex items-center gap-2 mt-1">
+            <div class="mt-1 space-y-1">
               <span
                 v-if="income.isDistributed"
-                class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700"
+                class="inline-block text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700"
               >
                 Distribuido
               </span>
-              <span class="text-xs text-gray-500">{{ formatDate(income.date) }}</span>
+              <p class="text-xs text-gray-500">{{ formatDate(income.date) }}</p>
             </div>
           </div>
 
