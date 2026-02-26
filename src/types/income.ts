@@ -1,5 +1,3 @@
-import type { Timestamp } from 'firebase/firestore'
-
 export interface IncomeDistribution {
   boxId: string
   boxName: string
@@ -22,14 +20,4 @@ export interface IncomeFormData {
   amount: number
   description: string
   date: Date
-}
-
-export interface IncomeFirestore {
-  amount: number
-  description: string
-  date: Timestamp
-  distributions: IncomeDistribution[]
-  isDistributed: boolean
-  createdAt: Timestamp
-  updatedAt: Timestamp
 }

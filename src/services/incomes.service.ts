@@ -1,40 +1,29 @@
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  getDocs,
-  query,
-  orderBy,
-  Timestamp,
-  writeBatch
-} from 'firebase/firestore'
-import { db } from '@/config/firebase'
-import type { Income, IncomeFormData, IncomeFirestore, IncomeDistribution, SavingsBox } from '@/types'
+import { supabase } from '@/config/supabase'
+import type { Income, IncomeFormData, IncomeDistribution, SavingsBox } from '@/types'
 
-function getCollection(userId: string) {
-  return collection(db, 'users', userId, 'incomes')
-}
-
-function toIncome(id: string, data: IncomeFirestore): Income {
+function toIncome(row: any): Income {
   return {
-    id,
-    amount: data.amount,
-    description: data.description,
-    date: data.date.toDate(),
-    distributions: data.distributions,
-    isDistributed: data.isDistributed,
-    createdAt: data.createdAt.toDate(),
-    updatedAt: data.updatedAt.toDate()
+    id: row.id,
+    amount: row.amount,
+    description: row.description,
+    date: new Date(row.date),
+    distributions: row.distributions ?? [],
+    isDistributed: row.is_distributed,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at)
   }
 }
 
 export const incomesService = {
   async getAll(userId: string): Promise<Income[]> {
-    const q = query(getCollection(userId), orderBy('date', 'desc'))
-    const snapshot = await getDocs(q)
-    return snapshot.docs.map((doc) => toIncome(doc.id, doc.data() as IncomeFirestore))
+    const { data, error } = await supabase
+      .from('incomes')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+
+    if (error) throw error
+    return (data ?? []).map(toIncome)
   },
 
   calculateDistribution(amount: number, savingsBoxes: SavingsBox[]): IncomeDistribution[] {
@@ -54,76 +43,81 @@ export const incomesService = {
     savingsBoxes: SavingsBox[]
   ): Promise<Income> {
     const distributions = this.calculateDistribution(data.amount, savingsBoxes)
-    const now = Timestamp.now()
 
-    // Use batch write for atomic operation
-    const batch = writeBatch(db)
+    const { data: incomeRow, error: incomeError } = await supabase
+      .from('incomes')
+      .insert({
+        user_id: userId,
+        amount: data.amount,
+        description: data.description,
+        date: data.date.toISOString(),
+        distributions,
+        is_distributed: true
+      })
+      .select()
+      .single()
 
-    // Create income document
-    const incomeRef = doc(getCollection(userId))
-    const incomeData: IncomeFirestore = {
-      amount: data.amount,
-      description: data.description,
-      date: Timestamp.fromDate(data.date),
-      distributions,
-      isDistributed: true,
-      createdAt: now,
-      updatedAt: now
-    }
-    batch.set(incomeRef, incomeData)
+    if (incomeError) throw incomeError
 
     // Update each savings box balance
     for (const distribution of distributions) {
-      const boxRef = doc(db, 'users', userId, 'savingsBoxes', distribution.boxId)
-      // Note: We can't use increment in batch, so we need to handle this differently
-      // For now, we'll get the current balance and set the new value
       const box = savingsBoxes.find(b => b.id === distribution.boxId)
       if (box) {
-        batch.update(boxRef, {
-          currentBalance: box.currentBalance + distribution.amount,
-          updatedAt: now
-        })
+        const { error } = await supabase
+          .from('savings_boxes')
+          .update({ current_balance: box.currentBalance + distribution.amount })
+          .eq('id', distribution.boxId)
+          .eq('user_id', userId)
+
+        if (error) throw error
       }
     }
 
-    await batch.commit()
-
-    return toIncome(incomeRef.id, incomeData)
+    return toIncome(incomeRow)
   },
 
   async create(userId: string, data: IncomeFormData): Promise<Income> {
-    const now = Timestamp.now()
-    const docData: IncomeFirestore = {
-      amount: data.amount,
-      description: data.description,
-      date: Timestamp.fromDate(data.date),
-      distributions: [],
-      isDistributed: false,
-      createdAt: now,
-      updatedAt: now
-    }
+    const { data: row, error } = await supabase
+      .from('incomes')
+      .insert({
+        user_id: userId,
+        amount: data.amount,
+        description: data.description,
+        date: data.date.toISOString(),
+        distributions: [],
+        is_distributed: false
+      })
+      .select()
+      .single()
 
-    const docRef = await addDoc(getCollection(userId), docData)
-    return toIncome(docRef.id, docData)
+    if (error) throw error
+    return toIncome(row)
   },
 
   async update(userId: string, incomeId: string, data: Partial<IncomeFormData>): Promise<void> {
-    const docRef = doc(db, 'users', userId, 'incomes', incomeId)
-    const updateData: any = {
-      ...data,
-      updatedAt: Timestamp.now()
-    }
+    const updateData: Record<string, any> = {}
 
-    if (data.date) {
-      updateData.date = Timestamp.fromDate(data.date)
-    }
+    if (data.amount !== undefined) updateData.amount = data.amount
+    if (data.description !== undefined) updateData.description = data.description
+    if (data.date) updateData.date = data.date.toISOString()
 
-    await updateDoc(docRef, updateData)
+    const { error } = await supabase
+      .from('incomes')
+      .update(updateData)
+      .eq('id', incomeId)
+      .eq('user_id', userId)
+
+    if (error) throw error
   },
 
   async delete(userId: string, incomeId: string): Promise<void> {
-    const docRef = doc(db, 'users', userId, 'incomes', incomeId)
-    await deleteDoc(docRef)
+    const { error } = await supabase
+      .from('incomes')
+      .delete()
+      .eq('id', incomeId)
+      .eq('user_id', userId)
+
+    if (error) throw error
   },
 
   async getMonthlyTotal(userId: string, year: number, month: number): Promise<number> {
@@ -131,10 +125,8 @@ export const incomesService = {
     const endDate = new Date(year, month + 1, 0, 23, 59, 59)
 
     const incomes = await this.getAll(userId)
-    const filteredIncomes = incomes.filter(income => {
-      return income.date >= startDate && income.date <= endDate
-    })
-
-    return filteredIncomes.reduce((sum, income) => sum + income.amount, 0)
+    return incomes
+      .filter(income => income.date >= startDate && income.date <= endDate)
+      .reduce((sum, income) => sum + income.amount, 0)
   }
 }

@@ -1,5 +1,3 @@
-import type { Timestamp } from 'firebase/firestore'
-
 export interface Expense {
   id: string
   amount: number
@@ -16,16 +14,6 @@ export interface ExpenseFormData {
   description: string
   date: Date
   categoryId: string
-}
-
-export interface ExpenseFirestore {
-  amount: number
-  description: string
-  date: Timestamp
-  categoryId: string
-  categoryName: string
-  createdAt: Timestamp
-  updatedAt: Timestamp
 }
 
 export interface ExpenseFilters {

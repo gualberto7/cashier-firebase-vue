@@ -1,16 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  GoogleAuthProvider,
-  signInWithPopup,
-  type User as FirebaseUser
-} from 'firebase/auth'
-import { auth } from '@/config/firebase'
+import { supabase } from '@/config/supabase'
 import type { User } from '@/types'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -20,13 +12,16 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!user.value)
 
-  function setUser(firebaseUser: FirebaseUser | null) {
-    if (firebaseUser) {
+  function setUser(supabaseUser: SupabaseUser | null) {
+    if (supabaseUser) {
       user.value = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        displayName: firebaseUser.displayName,
-        photoURL: firebaseUser.photoURL
+        uid: supabaseUser.id,
+        email: supabaseUser.email ?? null,
+        displayName:
+          supabaseUser.user_metadata?.full_name ??
+          supabaseUser.user_metadata?.display_name ??
+          null,
+        photoURL: supabaseUser.user_metadata?.avatar_url ?? null
       }
     } else {
       user.value = null
@@ -34,13 +29,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function initializeAuth(): Promise<void> {
-    return new Promise((resolve) => {
-      const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-        setUser(firebaseUser)
-        isInitialized.value = true
-        unsubscribe()
-        resolve()
-      })
+    const { data: { session } } = await supabase.auth.getSession()
+    setUser(session?.user ?? null)
+    isInitialized.value = true
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
     })
   }
 
@@ -48,10 +42,11 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true
     error.value = null
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
-      setUser(userCredential.user)
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+      if (authError) throw authError
+      setUser(data.user)
     } catch (e: any) {
-      error.value = getErrorMessage(e.code)
+      error.value = getErrorMessage(e.message)
       throw e
     } finally {
       isLoading.value = false
@@ -62,10 +57,11 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true
     error.value = null
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-      setUser(userCredential.user)
+      const { data, error: authError } = await supabase.auth.signUp({ email, password })
+      if (authError) throw authError
+      setUser(data.user)
     } catch (e: any) {
-      error.value = getErrorMessage(e.code)
+      error.value = getErrorMessage(e.message)
       throw e
     } finally {
       isLoading.value = false
@@ -76,11 +72,15 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true
     error.value = null
     try {
-      const provider = new GoogleAuthProvider()
-      const userCredential = await signInWithPopup(auth, provider)
-      setUser(userCredential.user)
+      const { error: authError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      })
+      if (authError) throw authError
     } catch (e: any) {
-      error.value = getErrorMessage(e.code)
+      error.value = getErrorMessage(e.message)
       throw e
     } finally {
       isLoading.value = false
@@ -91,30 +91,38 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true
     error.value = null
     try {
-      await signOut(auth)
+      const { error: authError } = await supabase.auth.signOut()
+      if (authError) throw authError
       user.value = null
     } catch (e: any) {
-      error.value = getErrorMessage(e.code)
+      error.value = getErrorMessage(e.message)
       throw e
     } finally {
       isLoading.value = false
     }
   }
 
-  function getErrorMessage(code: string): string {
-    const messages: Record<string, string> = {
-      'auth/email-already-in-use': 'Este correo ya está registrado',
-      'auth/invalid-email': 'Correo electrónico inválido',
-      'auth/operation-not-allowed': 'Operación no permitida',
-      'auth/weak-password': 'La contraseña es muy débil',
-      'auth/user-disabled': 'Esta cuenta ha sido deshabilitada',
-      'auth/user-not-found': 'No existe una cuenta con este correo',
-      'auth/wrong-password': 'Contraseña incorrecta',
-      'auth/invalid-credential': 'Credenciales inválidas',
-      'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde',
-      'auth/popup-closed-by-user': 'Inicio de sesión cancelado'
+  function getErrorMessage(message: string): string {
+    const lower = message.toLowerCase()
+    if (lower.includes('invalid login credentials') || lower.includes('invalid credentials')) {
+      return 'Credenciales inválidas'
     }
-    return messages[code] || 'Ha ocurrido un error'
+    if (lower.includes('email already registered') || lower.includes('user already registered')) {
+      return 'Este correo ya está registrado'
+    }
+    if (lower.includes('password should be')) {
+      return 'La contraseña es muy débil'
+    }
+    if (lower.includes('invalid email')) {
+      return 'Correo electrónico inválido'
+    }
+    if (lower.includes('email not confirmed')) {
+      return 'Por favor confirma tu correo electrónico'
+    }
+    if (lower.includes('too many requests') || lower.includes('rate limit')) {
+      return 'Demasiados intentos. Intenta más tarde'
+    }
+    return 'Ha ocurrido un error'
   }
 
   function clearError() {

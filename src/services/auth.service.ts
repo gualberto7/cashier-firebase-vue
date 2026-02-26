@@ -1,49 +1,44 @@
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  GoogleAuthProvider,
-  signInWithPopup,
-  updateProfile,
-  type User
-} from 'firebase/auth'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
-import { auth, db } from '@/config/firebase'
+import { supabase } from '@/config/supabase'
 import type { UserProfile } from '@/types'
 
 export const authService = {
   async login(email: string, password: string) {
-    return signInWithEmailAndPassword(auth, email, password)
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
+    return data
   },
 
   async register(email: string, password: string, displayName?: string) {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { display_name: displayName }
+      }
+    })
+    if (error) throw error
 
-    if (displayName) {
-      await updateProfile(userCredential.user, { displayName })
+    if (data.user) {
+      await this.createUserProfile(data.user.id)
     }
 
-    // Create default user profile
-    await this.createUserProfile(userCredential.user.uid)
-
-    return userCredential
+    return data
   },
 
   async loginWithGoogle() {
-    const provider = new GoogleAuthProvider()
-    const userCredential = await signInWithPopup(auth, provider)
-
-    // Create profile if it doesn't exist
-    const profileExists = await this.getUserProfile(userCredential.user.uid)
-    if (!profileExists) {
-      await this.createUserProfile(userCredential.user.uid)
-    }
-
-    return userCredential
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/`
+      }
+    })
+    if (error) throw error
+    return data
   },
 
   async logout() {
-    return signOut(auth)
+    const { error } = await supabase.auth.signOut()
+    if (error) throw error
   },
 
   async createUserProfile(userId: string, profile?: Partial<UserProfile>) {
@@ -53,26 +48,35 @@ export const authService = {
       ...profile
     }
 
-    await setDoc(doc(db, 'users', userId, 'profile', 'settings'), defaultProfile)
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({ id: userId, ...defaultProfile })
+
+    if (error) throw error
     return defaultProfile
   },
 
   async getUserProfile(userId: string): Promise<UserProfile | null> {
-    const docRef = doc(db, 'users', userId, 'profile', 'settings')
-    const docSnap = await getDoc(docRef)
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('currency, locale')
+      .eq('id', userId)
+      .single()
 
-    if (docSnap.exists()) {
-      return docSnap.data() as UserProfile
-    }
-    return null
+    if (error) return null
+    return data as UserProfile
   },
 
   async updateUserProfile(userId: string, profile: Partial<UserProfile>) {
-    const docRef = doc(db, 'users', userId, 'profile', 'settings')
-    await setDoc(docRef, profile, { merge: true })
+    const { error } = await supabase
+      .from('profiles')
+      .update(profile)
+      .eq('id', userId)
+
+    if (error) throw error
   },
 
-  getCurrentUser(): User | null {
-    return auth.currentUser
+  getCurrentUser() {
+    return supabase.auth.getUser()
   }
 }

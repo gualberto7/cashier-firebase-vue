@@ -1,120 +1,99 @@
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  getDocs,
-  query,
-  orderBy,
-  where,
-  Timestamp
-} from 'firebase/firestore'
-import { db } from '@/config/firebase'
-import type { Expense, ExpenseFormData, ExpenseFirestore, ExpenseFilters, Category } from '@/types'
+import { supabase } from '@/config/supabase'
+import type { Expense, ExpenseFormData, ExpenseFilters, Category } from '@/types'
 
-function getCollection(userId: string) {
-  return collection(db, 'users', userId, 'expenses')
-}
-
-function toExpense(id: string, data: ExpenseFirestore): Expense {
+function toExpense(row: any): Expense {
   return {
-    id,
-    amount: data.amount,
-    description: data.description,
-    date: data.date.toDate(),
-    categoryId: data.categoryId,
-    categoryName: data.categoryName,
-    createdAt: data.createdAt.toDate(),
-    updatedAt: data.updatedAt.toDate()
+    id: row.id,
+    amount: row.amount,
+    description: row.description,
+    date: new Date(row.date),
+    categoryId: row.category_id,
+    categoryName: row.category_name,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at)
   }
 }
 
 export const expensesService = {
   async getAll(userId: string, filters?: ExpenseFilters): Promise<Expense[]> {
-    let q = query(getCollection(userId), orderBy('date', 'desc'))
-
-    const constraints: any[] = []
+    let query = supabase
+      .from('expenses')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
 
     if (filters?.startDate) {
-      constraints.push(where('date', '>=', Timestamp.fromDate(filters.startDate)))
+      query = query.gte('date', filters.startDate.toISOString())
     }
-
     if (filters?.endDate) {
-      constraints.push(where('date', '<=', Timestamp.fromDate(filters.endDate)))
+      query = query.lte('date', filters.endDate.toISOString())
     }
-
     if (filters?.categoryId) {
-      constraints.push(where('categoryId', '==', filters.categoryId))
+      query = query.eq('category_id', filters.categoryId)
     }
-
-    if (constraints.length > 0) {
-      q = query(getCollection(userId), ...constraints, orderBy('date', 'desc'))
-    }
-
-    const snapshot = await getDocs(q)
-    let expenses = snapshot.docs.map((doc) => toExpense(doc.id, doc.data() as ExpenseFirestore))
-
-    // Client-side filtering for amount (Firestore doesn't support range on multiple fields easily)
     if (filters?.minAmount !== undefined) {
-      expenses = expenses.filter(e => e.amount >= filters.minAmount!)
+      query = query.gte('amount', filters.minAmount)
     }
-
     if (filters?.maxAmount !== undefined) {
-      expenses = expenses.filter(e => e.amount <= filters.maxAmount!)
+      query = query.lte('amount', filters.maxAmount)
     }
 
-    return expenses
+    const { data, error } = await query
+    if (error) throw error
+    return (data ?? []).map(toExpense)
   },
 
   async create(userId: string, data: ExpenseFormData, category: Category): Promise<Expense> {
-    const now = Timestamp.now()
-    const docData: ExpenseFirestore = {
-      amount: data.amount,
-      description: data.description,
-      date: Timestamp.fromDate(data.date),
-      categoryId: data.categoryId,
-      categoryName: category.name,
-      createdAt: now,
-      updatedAt: now
-    }
+    const { data: row, error } = await supabase
+      .from('expenses')
+      .insert({
+        user_id: userId,
+        amount: data.amount,
+        description: data.description,
+        date: data.date.toISOString(),
+        category_id: data.categoryId,
+        category_name: category.name
+      })
+      .select()
+      .single()
 
-    const docRef = await addDoc(getCollection(userId), docData)
-    return toExpense(docRef.id, docData)
+    if (error) throw error
+    return toExpense(row)
   },
 
   async update(userId: string, expenseId: string, data: Partial<ExpenseFormData>, category?: Category): Promise<void> {
-    const docRef = doc(db, 'users', userId, 'expenses', expenseId)
-    const updateData: any = {
-      ...data,
-      updatedAt: Timestamp.now()
-    }
+    const updateData: Record<string, any> = {}
 
-    if (data.date) {
-      updateData.date = Timestamp.fromDate(data.date)
-    }
+    if (data.amount !== undefined) updateData.amount = data.amount
+    if (data.description !== undefined) updateData.description = data.description
+    if (data.date) updateData.date = data.date.toISOString()
+    if (data.categoryId) updateData.category_id = data.categoryId
+    if (category) updateData.category_name = category.name
 
-    if (category) {
-      updateData.categoryName = category.name
-    }
+    const { error } = await supabase
+      .from('expenses')
+      .update(updateData)
+      .eq('id', expenseId)
+      .eq('user_id', userId)
 
-    await updateDoc(docRef, updateData)
+    if (error) throw error
   },
 
   async delete(userId: string, expenseId: string): Promise<void> {
-    const docRef = doc(db, 'users', userId, 'expenses', expenseId)
-    await deleteDoc(docRef)
+    const { error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', expenseId)
+      .eq('user_id', userId)
+
+    if (error) throw error
   },
 
   async getMonthlyTotal(userId: string, year: number, month: number): Promise<number> {
     const startDate = new Date(year, month, 1)
     const endDate = new Date(year, month + 1, 0, 23, 59, 59)
 
-    const expenses = await this.getAll(userId, {
-      startDate,
-      endDate
-    })
-
+    const expenses = await this.getAll(userId, { startDate, endDate })
     return expenses.reduce((sum, expense) => sum + expense.amount, 0)
   },
 

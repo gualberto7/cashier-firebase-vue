@@ -1,5 +1,3 @@
-import type { Timestamp } from 'firebase/firestore'
-
 export interface SavingsBox {
   id: string
   name: string
@@ -16,16 +14,6 @@ export interface SavingsBoxFormData {
   targetPercentage: number
   color: string
   isActive: boolean
-}
-
-export interface SavingsBoxFirestore {
-  name: string
-  targetPercentage: number
-  currentBalance: number
-  color: string
-  isActive: boolean
-  createdAt: Timestamp
-  updatedAt: Timestamp
 }
 
 export const BOX_COLORS = [

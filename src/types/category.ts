@@ -1,5 +1,3 @@
-import type { Timestamp } from 'firebase/firestore'
-
 export interface Category {
   id: string
   name: string
@@ -14,15 +12,6 @@ export interface CategoryFormData {
   name: string
   icon: string
   color: string
-}
-
-export interface CategoryFirestore {
-  name: string
-  icon: string
-  color: string
-  isDefault: boolean
-  createdAt: Timestamp
-  updatedAt: Timestamp
 }
 
 export const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>[] = [
