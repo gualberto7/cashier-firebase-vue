@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
+import AppBottomNav from './AppBottomNav.vue'
 
 const sidebarOpen = ref(false)
 
@@ -21,9 +22,11 @@ function closeSidebar() {
     <div class="flex-1 flex flex-col min-w-0">
       <AppHeader @toggle-sidebar="toggleSidebar" />
 
-      <main class="flex-1 p-4 lg:p-6">
+      <main class="flex-1 p-4 pb-20 lg:p-6 lg:pb-6">
         <slot />
       </main>
     </div>
+
+    <AppBottomNav />
   </div>
 </template>
