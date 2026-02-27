@@ -6,16 +6,24 @@ import { useAuthStore } from '@/stores/auth'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
+export type ReportMode = 'monthly' | 'trip'
+
 export function useReports() {
   const authStore = useAuthStore()
   const savingsBoxesStore = useSavingsBoxesStore()
 
   const isLoading = ref(false)
   const selectedMonth = ref(new Date())
+  const reportMode = ref<ReportMode>('monthly')
+  const selectedTripId = ref<string | null>(null)
 
   const monthlyExpenses = ref(0)
   const monthlyIncomes = ref(0)
   const expensesByCategory = ref<Map<string, number>>(new Map())
+
+  // Trip-specific state
+  const tripTotal = ref(0)
+  const tripExpenseCount = ref(0)
 
   const monthlyBalance = computed(() => monthlyIncomes.value - monthlyExpenses.value)
 
@@ -81,6 +89,26 @@ export function useReports() {
     }
   }
 
+  async function loadTripReport() {
+    if (!authStore.user || !selectedTripId.value) return
+
+    isLoading.value = true
+    try {
+      const expenses = await expensesService.getAll(authStore.user.uid, { tripId: selectedTripId.value })
+      tripTotal.value = expenses.reduce((sum, e) => sum + e.amount, 0)
+      tripExpenseCount.value = expenses.length
+
+      const byCategory = new Map<string, number>()
+      for (const expense of expenses) {
+        const current = byCategory.get(expense.categoryName) || 0
+        byCategory.set(expense.categoryName, current + expense.amount)
+      }
+      expensesByCategory.value = byCategory
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   function setMonth(date: Date) {
     selectedMonth.value = date
     loadMonthlyReport()
@@ -98,19 +126,43 @@ export function useReports() {
     setMonth(newDate)
   }
 
+  function setReportMode(mode: ReportMode) {
+    reportMode.value = mode
+    expensesByCategory.value = new Map()
+    if (mode === 'monthly') {
+      loadMonthlyReport()
+    } else {
+      tripTotal.value = 0
+      tripExpenseCount.value = 0
+      selectedTripId.value = null
+    }
+  }
+
+  function selectTrip(tripId: string) {
+    selectedTripId.value = tripId
+    loadTripReport()
+  }
+
   return {
     isLoading,
     selectedMonth,
+    reportMode,
+    selectedTripId,
     monthlyExpenses,
     monthlyIncomes,
     monthlyBalance,
+    tripTotal,
+    tripExpenseCount,
     expensesByCategory,
     formattedMonth,
     categoryChartData,
     savingsBoxesData,
     loadMonthlyReport,
+    loadTripReport,
     setMonth,
     previousMonth,
-    nextMonth
+    nextMonth,
+    setReportMode,
+    selectTrip
   }
 }
