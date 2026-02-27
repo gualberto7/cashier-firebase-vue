@@ -9,10 +9,12 @@ interface Props {
   modelValue: boolean
   expense?: Expense | null
   categories: Category[]
+  tripId?: string | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  expense: null
+  expense: null,
+  tripId: null
 })
 
 const emit = defineEmits<{
@@ -24,7 +26,8 @@ const form = ref<ExpenseFormData>({
   amount: 0,
   description: '',
   date: new Date(),
-  categoryId: ''
+  categoryId: '',
+  tripId: null
 })
 
 const dateString = ref('')
@@ -47,7 +50,8 @@ watch(() => props.modelValue, (isOpen) => {
         amount: props.expense.amount,
         description: props.expense.description,
         date: props.expense.date,
-        categoryId: props.expense.categoryId
+        categoryId: props.expense.categoryId,
+        tripId: props.expense.tripId ?? props.tripId
       }
       dateString.value = toDatetimeLocal(props.expense.date)
     } else {
@@ -55,7 +59,8 @@ watch(() => props.modelValue, (isOpen) => {
         amount: 0,
         description: '',
         date: new Date(),
-        categoryId: props.categories[0]?.id || ''
+        categoryId: props.categories[0]?.id || '',
+        tripId: props.tripId
       }
       dateString.value = toDatetimeLocal(new Date())
     }

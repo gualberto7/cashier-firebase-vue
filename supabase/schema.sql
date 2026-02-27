@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   date TIMESTAMPTZ NOT NULL,
   category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
   category_name TEXT NOT NULL,
+  trip_id UUID REFERENCES trips(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -50,6 +51,19 @@ CREATE TABLE IF NOT EXISTS savings_boxes (
   current_balance NUMERIC(12, 2) NOT NULL DEFAULT 0,
   color TEXT NOT NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Viajes
+CREATE TABLE IF NOT EXISTS trips (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  start_date DATE NOT NULL,
+  end_date DATE,
+  color TEXT NOT NULL DEFAULT '#3b82f6',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -75,9 +89,12 @@ CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories(user_id);
 CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date DESC);
 CREATE INDEX IF NOT EXISTS idx_expenses_category_id ON expenses(category_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_trip_id ON expenses(trip_id);
 CREATE INDEX IF NOT EXISTS idx_savings_boxes_user_id ON savings_boxes(user_id);
 CREATE INDEX IF NOT EXISTS idx_incomes_user_id ON incomes(user_id);
 CREATE INDEX IF NOT EXISTS idx_incomes_date ON incomes(date DESC);
+CREATE INDEX IF NOT EXISTS idx_trips_user_id ON trips(user_id);
+CREATE INDEX IF NOT EXISTS idx_trips_start_date ON trips(start_date DESC);
 
 -- =============================================
 -- TRIGGER: updated_at automático
@@ -109,6 +126,10 @@ CREATE OR REPLACE TRIGGER set_updated_at_savings_boxes
 
 CREATE OR REPLACE TRIGGER set_updated_at_incomes
   BEFORE UPDATE ON incomes
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE OR REPLACE TRIGGER set_updated_at_trips
+  BEFORE UPDATE ON trips
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- =============================================
@@ -166,5 +187,11 @@ CREATE POLICY "Users can manage their own savings boxes"
 -- Incomes: solo el propio usuario
 CREATE POLICY "Users can manage their own incomes"
   ON incomes FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Trips: solo el propio usuario
+ALTER TABLE trips ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own trips" ON trips
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);

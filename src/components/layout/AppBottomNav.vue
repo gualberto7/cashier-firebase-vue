@@ -3,12 +3,14 @@ import { RouterLink, useRoute } from 'vue-router'
 import {
   HomeIcon,
   BanknotesIcon,
+  MapPinIcon,
   WalletIcon,
   ChartBarIcon
 } from '@heroicons/vue/24/outline'
 import {
   HomeIcon as HomeIconSolid,
   BanknotesIcon as BanknotesIconSolid,
+  MapPinIcon as MapPinIconSolid,
   WalletIcon as WalletIconSolid,
   ChartBarIcon as ChartBarIconSolid
 } from '@heroicons/vue/24/solid'
@@ -18,6 +20,7 @@ const route = useRoute()
 const navigation = [
   { name: 'Dashboard', to: '/', icon: HomeIcon, iconActive: HomeIconSolid },
   { name: 'Gastos', to: '/expenses', icon: BanknotesIcon, iconActive: BanknotesIconSolid },
+  { name: 'Viajes', to: '/trips', icon: MapPinIcon, iconActive: MapPinIconSolid },
   { name: 'Ahorros', to: '/savings', icon: WalletIcon, iconActive: WalletIconSolid },
   { name: 'Reportes', to: '/reports', icon: ChartBarIcon, iconActive: ChartBarIconSolid }
 ]

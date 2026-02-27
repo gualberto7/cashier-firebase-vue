@@ -5,6 +5,7 @@ export interface Expense {
   date: Date
   categoryId: string
   categoryName: string
+  tripId?: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -14,6 +15,7 @@ export interface ExpenseFormData {
   description: string
   date: Date
   categoryId: string
+  tripId?: string | null
 }
 
 export interface ExpenseFilters {
@@ -22,4 +24,5 @@ export interface ExpenseFilters {
   categoryId?: string
   minAmount?: number
   maxAmount?: number
+  tripId?: string
 }

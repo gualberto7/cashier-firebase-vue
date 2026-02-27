@@ -7,6 +7,7 @@ import {
   WalletIcon,
   TagIcon,
   ChartBarIcon,
+  MapPinIcon,
   XMarkIcon
 } from '@heroicons/vue/24/outline'
 
@@ -25,6 +26,7 @@ const route = useRoute()
 const navigation = [
   { name: 'Dashboard', to: '/', icon: HomeIcon },
   { name: 'Gastos', to: '/expenses', icon: BanknotesIcon },
+  { name: 'Viajes', to: '/trips', icon: MapPinIcon },
   { name: 'Ingresos', to: '/incomes', icon: ArrowTrendingUpIcon },
   { name: 'Cajas de Ahorro', to: '/savings', icon: WalletIcon },
   { name: 'Categorías', to: '/categories', icon: TagIcon },

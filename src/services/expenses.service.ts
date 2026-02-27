@@ -9,6 +9,7 @@ function toExpense(row: any): Expense {
     date: new Date(row.date),
     categoryId: row.category_id,
     categoryName: row.category_name,
+    tripId: row.trip_id ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at)
   }
@@ -37,6 +38,9 @@ export const expensesService = {
     if (filters?.maxAmount !== undefined) {
       query = query.lte('amount', filters.maxAmount)
     }
+    if (filters?.tripId !== undefined) {
+      query = query.eq('trip_id', filters.tripId)
+    }
 
     const { data, error } = await query
     if (error) throw error
@@ -52,7 +56,8 @@ export const expensesService = {
         description: data.description,
         date: data.date.toISOString(),
         category_id: data.categoryId,
-        category_name: category.name
+        category_name: category.name,
+        trip_id: data.tripId ?? null
       })
       .select()
       .single()
@@ -69,6 +74,7 @@ export const expensesService = {
     if (data.date) updateData.date = data.date.toISOString()
     if (data.categoryId) updateData.category_id = data.categoryId
     if (category) updateData.category_name = category.name
+    if ('tripId' in data) updateData.trip_id = data.tripId ?? null
 
     const { error } = await supabase
       .from('expenses')

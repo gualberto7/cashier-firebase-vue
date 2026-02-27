@@ -53,6 +53,18 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/trips',
+      name: 'trips',
+      component: () => import('@/views/TripsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/trips/:id',
+      name: 'trip-detail',
+      component: () => import('@/views/TripDetailView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/'
     }
