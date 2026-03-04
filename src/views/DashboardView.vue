@@ -4,7 +4,6 @@ import { RouterLink } from 'vue-router'
 import { MainLayout } from '@/components/layout'
 import { BaseCard, BaseButton } from '@/components/common'
 import { MonthlySummary } from '@/components/reports'
-import { useReports } from '@/composables/useReports'
 import { useSavingsBoxesStore } from '@/stores/savingsBoxes'
 import { useExpensesStore } from '@/stores/expenses'
 import { useIncomesStore } from '@/stores/incomes'
@@ -18,16 +17,17 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { formatCurrency } from '@/utils/currency'
 
-const {
-  monthlyExpenses,
-  monthlyIncomes,
-  monthlyBalance,
-  loadMonthlyReport
-} = useReports()
-
 const savingsBoxesStore = useSavingsBoxesStore()
 const expensesStore = useExpensesStore()
 const incomesStore = useIncomesStore()
+
+const totalExpenses = computed(() =>
+  expensesStore.expenses.reduce((sum, e) => sum + e.amount, 0)
+)
+const totalIncomes = computed(() =>
+  incomesStore.incomes.reduce((sum, i) => sum + i.amount, 0)
+)
+const totalBalance = computed(() => totalIncomes.value - totalExpenses.value)
 
 const recentExpenses = computed(() => expensesStore.expenses.slice(0, 5))
 const recentIncomes = computed(() => incomesStore.incomes.slice(0, 5))
@@ -40,8 +40,7 @@ onMounted(async () => {
   await Promise.all([
     savingsBoxesStore.fetchBoxes(),
     expensesStore.fetchExpenses(),
-    incomesStore.fetchIncomes(),
-    loadMonthlyReport()
+    incomesStore.fetchIncomes()
   ])
 })
 </script>
@@ -54,11 +53,11 @@ onMounted(async () => {
         <p class="text-gray-500">Resumen de tus finanzas</p>
       </div>
 
-      <!-- Monthly Summary -->
+      <!-- Total Summary -->
       <MonthlySummary
-        :incomes="monthlyIncomes"
-        :expenses="monthlyExpenses"
-        :balance="monthlyBalance"
+        :incomes="totalIncomes"
+        :expenses="totalExpenses"
+        :balance="totalBalance"
       />
 
       <!-- Savings Boxes -->
